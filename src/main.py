@@ -38,7 +38,7 @@ marathon_protocol = cfg.get('marathon', 'protocol')
 marathon_host = cfg.get('marathon', 'host')
 marathon_port = cfg.get('marathon', 'port')
 marathon_origin = '{}://{}:{}'.format(marathon_protocol, marathon_host, marathon_port)
-marathon_auth_url = '{}://{}:{}@{}:{}'.format(marathon_protocol, marathon_username, marathon_password, marathon_host, marathon_port)
+marathon_auth_url = '{}://{}:{}@{}:{}/ui'.format(marathon_protocol, marathon_username, marathon_password, marathon_host, marathon_port)
 marathon_app_url = '{}://{}:{}/ui/#/apps?filterText={}'.format(marathon_protocol, marathon_host, marathon_port, project_name)
 
 sysstr = platform.system()
@@ -211,12 +211,13 @@ def watch_build_log():
 
 
 def watch_deploy_result(watch_url):
+    wd.get(marathon_auth_url)
     watch_deploy_result_xpath = '//*[@id="marathon"]/div/div/div/div[1]/span/span[1]'
     deploy_origin_xpath = '//*[@id="marathon"]/div/div/div/div[2]/div/div/div[2]/table/tbody/tr/td[2]/a[2]'
     wd.get(watch_url)
-    sleep(2)
     try:
         WebDriverWait(wd, 5).until(EC.visibility_of_element_located((By.XPATH, watch_deploy_result_xpath)), 'timed out')
+        sleep(2)
         while True:
             status = wd.find_element_by_xpath(watch_deploy_result_xpath).text
             origin = wd.find_element_by_xpath(deploy_origin_xpath).text
@@ -281,4 +282,3 @@ def run():
 
 
 run()
-
