@@ -42,17 +42,20 @@ marathon_auth_url = '{}://{}:{}@{}:{}/ui'.format(marathon_protocol, marathon_use
 marathon_app_url = '{}://{}:{}/ui/#/apps?filterText={}'.format(marathon_protocol, marathon_host, marathon_port, project_name)
 
 sysstr = platform.system()
-chrome_path = None
+driver_path = None
 if sysstr == 'Windows':
-    chrome_path = r'../driver/chromedriver.exe'
+    driver_path = r'../driver/chromedriver.exe'
 elif sysstr == 'Darwin':
-    chrome_path = r'../driver/chromedriver'
+    driver_path = r'../driver/chromedriver'
 elif sysstr == 'Linux':
     chrome_path = r'../driver/chromedriver_linux'
 else:
     raise OSError('{} is not supported'.format(sysstr))
 
-wd = webdriver.Chrome(executable_path=chrome_path)
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument("--headless")
+wd = webdriver.Chrome(executable_path=driver_path, chrome_options=chrome_options)
+
 session = None
 processing_json_path = None
 new_tag_version = None
@@ -168,44 +171,43 @@ def get_processing_json_path():
 def get_processing_json_data():
     global session
     global processing_json_path
-    at_least_len = 500
-    short_json_data = ''
+    at_least_len = 3000
 
     session = login()
     processing_json_path = get_processing_json_path()
 
     logger('获取最新 build 日志: building...')
     json_data = session.get(processing_json_path).text
-    if len(json_data) < at_least_len:
-        pass
-    else:
-        short_json_data = json_data[-at_least_len:]
+    json_head_data = json_data[:at_least_len]
+    json_tail_data = json_data[-at_least_len:]
 
-    # logger('成功获取 build 日志: ' + short_json_data[-100:])
-    return short_json_data
+    logger('成功获取 build 日志: ' + json_tail_data[-100:])
+    return json_head_data, json_tail_data
 
 
 def watch_build_log():
     logger('开始监控 build 日志')
     global new_tag_version
-    if new_tag_version:
-        pass
-    else:
-        new_tag_version = 'test_v0.3.28'
 
     def watch():
+        target_image_path = None
+        reg_str = r'pushing (.*?' + new_tag_version + r'_.*?)\\u003cbr\\u003e'
+
         while True:
-            build_log = get_processing_json_data()
-            if "Build succeeded" in build_log:
-                reg_str = 'Pushed.*(' + new_tag_version + '.*?): digest'
-                if re.search(reg_str, build_log):
-                    image_url = re.search(reg_str, build_log).group(1)
-                    logger('build succeeded, 最新镜像: {}'.format(image_url))
-                    return image_url
+            build_head_log, build_tail_log = get_processing_json_data()
+
+            if not target_image_path:
+                if re.search(reg_str, build_head_log):
+                    target_image_path = re.search(reg_str, build_head_log).group(1)
+                    logger('最新镜像地址: {}'.format(target_image_path))
+            if "Build succeeded" in build_tail_log:
+                if target_image_path:
+                    logger('镜像构建成功: {}'.format(target_image_path))
+                    return target_image_path
                 else:
-                    logger('未查找到目标镜像地址')
-                    continue
-            sleep(30)
+                    raise EOFError('未匹配到镜像地址')
+            else:
+                sleep(30)
 
     return watch()
 
@@ -237,7 +239,7 @@ def update_marathon(image_path):
     wd.get(marathon_auth_url)
     wd.get(marathon_app_url)
 
-    app_entrance_xpath = '//*[@id="marathon"]/div/div/div/div/main/div[2]/table/tbody/tr[4]/td[2]'
+    app_entrance_xpath = '//*[@id="marathon"]/div/div/div/div/main/div[2]/table/tbody/tr[4]/td[1]'
     config_tab_xpath = '//*[@id="marathon"]/div/div/div/div[2]/ul/li[2]/a'
     edit_button_xpath = '//*[@id="marathon"]/div/div/div/div[2]/div/div/div[1]/button'
     docker_container_xpath = '//*[@id="marathon"]/div/div[2]/div[1]/div/div/form/div[2]/div/ul/li[2]/label'
@@ -260,14 +262,14 @@ def update_marathon(image_path):
         WebDriverWait(wd, 5).until(EC.visibility_of_element_located((By.XPATH, image_input_xpath)), 'timed out')
     except TimeoutException:
         print('timed out')
-    prev_image_path = wd.find_element_by_xpath(image_input_xpath).get_attribute('value')
 
-    splice = prev_image_path.split(':')
-    splice[-1] = image_path
-    target_image_path = ':'.join(splice)
+    # prev_image_path = wd.find_element_by_xpath(image_input_xpath).get_attribute('value')
+    # splice = prev_image_path.split(':')
+    # splice[-1] = image_path
+    # target_image_path = ':'.join(splice)
 
     wd.find_element_by_xpath(image_input_xpath).clear()
-    wd.find_element_by_xpath(image_input_xpath).send_keys(target_image_path)
+    wd.find_element_by_xpath(image_input_xpath).send_keys(image_path)
 
     wd.find_element_by_xpath(confirm_button_xpath).click()
 
