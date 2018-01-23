@@ -89,7 +89,6 @@ def get_cookies():
     cookies = wd.get_cookies()
 
     logger('成功获取 cookies')
-
     return cookies
 
 
@@ -151,7 +150,7 @@ def get_processing_json_path():
     global processing_json_path
     global session
 
-    if (processing_json_path):
+    if processing_json_path:
         pass
     else:
         session = login()
@@ -200,12 +199,14 @@ def watch_build_log():
                 if re.search(reg_str, build_head_log):
                     target_image_path = re.search(reg_str, build_head_log).group(1)
                     logger('最新镜像地址: {}'.format(target_image_path))
+
             if "Build succeeded" in build_tail_log:
                 if target_image_path:
                     logger('镜像构建成功: {}'.format(target_image_path))
                     return target_image_path
                 else:
                     raise EOFError('未匹配到镜像地址')
+
             else:
                 sleep(30)
 
@@ -230,8 +231,10 @@ def watch_deploy_result(watch_url):
             else:
                 logger('部署中...')
                 sleep(5)
+
     except TimeoutException:
         print('timed out')
+
     wd.quit()
 
 
@@ -251,6 +254,7 @@ def update_marathon(image_path):
             WebDriverWait(wd, 5).until(EC.visibility_of_element_located((By.XPATH, xpath)), 'timed out')
         except TimeoutException:
             print('timed out')
+
         wd.find_element_by_xpath(xpath).click()
 
     promise_click(app_entrance_xpath)
@@ -262,11 +266,6 @@ def update_marathon(image_path):
         WebDriverWait(wd, 5).until(EC.visibility_of_element_located((By.XPATH, image_input_xpath)), 'timed out')
     except TimeoutException:
         print('timed out')
-
-    # prev_image_path = wd.find_element_by_xpath(image_input_xpath).get_attribute('value')
-    # splice = prev_image_path.split(':')
-    # splice[-1] = image_path
-    # target_image_path = ':'.join(splice)
 
     wd.find_element_by_xpath(image_input_xpath).clear()
     wd.find_element_by_xpath(image_input_xpath).send_keys(image_path)
