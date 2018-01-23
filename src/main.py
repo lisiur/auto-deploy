@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import re
 import requests
 import datetime
@@ -44,11 +47,11 @@ marathon_app_url = '{}://{}:{}/ui/#/apps?filterText={}'.format(marathon_protocol
 sysstr = platform.system()
 driver_path = None
 if sysstr == 'Windows':
-    driver_path = r'../driver/chromedriver.exe'
+    driver_path = '../driver/chromedriver.exe'
 elif sysstr == 'Darwin':
-    driver_path = r'../driver/chromedriver'
+    driver_path = '../driver/chromedriver'
 elif sysstr == 'Linux':
-    chrome_path = r'../driver/chromedriver_linux'
+    chrome_path = '../driver/chromedriver_linux'
 else:
     raise OSError('{} is not supported'.format(sysstr))
 
@@ -282,4 +285,6 @@ def run():
     update_marathon(watch_build_log())
 
 
-run()
+if __name__ == '__main__':
+    run()
+
