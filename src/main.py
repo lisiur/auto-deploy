@@ -8,6 +8,7 @@ import platform
 import functools
 from configparser import ConfigParser
 from selenium import webdriver
+from subprocess import call
 from time import sleep
 from bs4 import BeautifulSoup
 from selenium.webdriver.support.ui import WebDriverWait
@@ -230,6 +231,9 @@ def watch_deploy_result(watch_url):
             if status == 'Running':
                 logger('部署成功')
                 logger(origin)
+                if sysstr == 'Darwin':
+                    cmd = 'display notification \"' + origin + '\" with title \"部署成功\"'
+                    call(["osascript", "-e", cmd])
                 break
             else:
                 logger('部署中...')
@@ -287,4 +291,3 @@ def run():
 
 if __name__ == '__main__':
     run()
-
