@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import sys
 import requests
 import datetime
 import platform
@@ -16,53 +17,81 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 
-cfg = ConfigParser()
-cfg.read('../config.ini')
+def init(ini_name):
+    global project_path
+    global project_name
 
-# project config
-project_path = cfg.get('project', 'path')
-project_name = cfg.get('project', 'name')
+    global gitlab_username
+    global gitlab_password
+    global gitlab_protocol
+    global gitlab_host
+    global gitlab_port
+    global gitlab_origin
 
-# gitlab config
-gitlab_username = cfg.get('gitlab', 'username')
-gitlab_password = cfg.get('gitlab', 'password')
-gitlab_protocol = cfg.get('gitlab', 'protocol')
-gitlab_host = cfg.get('gitlab', 'host')
-gitlab_port = cfg.get('gitlab', 'port')
-gitlab_origin = '{}://{}:{}'.format(gitlab_protocol, gitlab_host, gitlab_port)
-login_url = gitlab_origin + '/users/sign_in'
-tags_url = gitlab_origin + project_path + '/tags'
-new_tag_url = gitlab_origin + project_path + '/tags/new'
-pipelines_url = gitlab_origin + project_path + '/pipelines'
+    global login_url
+    global tags_url
+    global pipelines_url
 
-# marathon config
-marathon_username = cfg.get('marathon', 'username')
-marathon_password = cfg.get('marathon', 'password')
-marathon_protocol = cfg.get('marathon', 'protocol')
-marathon_host = cfg.get('marathon', 'host')
-marathon_port = cfg.get('marathon', 'port')
-marathon_origin = '{}://{}:{}'.format(marathon_protocol, marathon_host, marathon_port)
-marathon_auth_url = '{}://{}:{}@{}:{}/ui'.format(marathon_protocol, marathon_username, marathon_password, marathon_host, marathon_port)
-marathon_app_url = '{}://{}:{}/ui/#/apps?filterText={}'.format(marathon_protocol, marathon_host, marathon_port, project_name)
+    global marathon_username
+    global marathon_password
+    global marathon_protocol
+    global marathon_host
+    global marathon_port
+    global marathon_origin
+    global marathon_auth_url
+    global marathon_app_url
 
-sysstr = platform.system()
-driver_path = None
-if sysstr == 'Windows':
-    driver_path = '../driver/chromedriver.exe'
-elif sysstr == 'Darwin':
-    driver_path = '../driver/chromedriver'
-elif sysstr == 'Linux':
-    chrome_path = '../driver/chromedriver_linux'
-else:
-    raise OSError('{} is not supported'.format(sysstr))
+    global sysstr
+    global driver_path
+    global wd
 
-chrome_options = webdriver.ChromeOptions()
-chrome_options.add_argument("--headless")
-wd = webdriver.Chrome(executable_path=driver_path, chrome_options=chrome_options)
+    global session
+    global processing_json_path
+    global new_tag_version
 
-session = None
-processing_json_path = None
-new_tag_version = None
+    cfg = ConfigParser()
+    cfg.read(ini_name)
+
+    # project config
+    project_path = cfg.get('project', 'path')
+    project_name = cfg.get('project', 'name')
+
+    # gitlab config
+    gitlab_username = cfg.get('gitlab', 'username')
+    gitlab_password = cfg.get('gitlab', 'password')
+    gitlab_protocol = cfg.get('gitlab', 'protocol')
+    gitlab_host = cfg.get('gitlab', 'host')
+    gitlab_port = cfg.get('gitlab', 'port')
+    gitlab_origin = '{}://{}:{}'.format(gitlab_protocol, gitlab_host, gitlab_port)
+    login_url = gitlab_origin + '/users/sign_in'
+    tags_url = gitlab_origin + project_path + '/tags'
+    new_tag_url = gitlab_origin + project_path + '/tags/new'
+    pipelines_url = gitlab_origin + project_path + '/pipelines'
+
+    # marathon config
+    marathon_username = cfg.get('marathon', 'username')
+    marathon_password = cfg.get('marathon', 'password')
+    marathon_protocol = cfg.get('marathon', 'protocol')
+    marathon_host = cfg.get('marathon', 'host')
+    marathon_port = cfg.get('marathon', 'port')
+    marathon_origin = '{}://{}:{}'.format(marathon_protocol, marathon_host, marathon_port)
+    marathon_auth_url = '{}://{}:{}@{}:{}/ui'.format(marathon_protocol, marathon_username, marathon_password, marathon_host, marathon_port)
+    marathon_app_url = '{}://{}:{}/ui/#/apps?filterText={}'.format(marathon_protocol, marathon_host, marathon_port, project_name)
+
+    sysstr = platform.system()
+    driver_path = None
+    if sysstr == 'Windows':
+        driver_path = '../driver/chromedriver.exe'
+    elif sysstr == 'Darwin':
+        driver_path = '../driver/chromedriver'
+    elif sysstr == 'Linux':
+        chrome_path = '../driver/chromedriver_linux'
+    else:
+        raise OSError('{} is not supported'.format(sysstr))
+
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--headless")
+    wd = webdriver.Chrome(executable_path=driver_path, chrome_options=chrome_options)
 
 
 def log(text):
@@ -290,4 +319,6 @@ def run():
 
 
 if __name__ == '__main__':
+    ini_name = sys.args[1]
+    init(ini_name)
     run()
