@@ -319,6 +319,6 @@ def run():
 
 
 if __name__ == '__main__':
-    ini_name = sys.args[1]
+    ini_name = sys.argv[1]
     init(ini_name)
     run()
