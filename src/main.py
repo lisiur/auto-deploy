@@ -17,6 +17,38 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 
+project_path = None
+project_name = None
+
+gitlab_username = None
+gitlab_password = None
+gitlab_protocol = None
+gitlab_host = None
+gitlab_port = None
+gitlab_origin = None
+
+login_url = None
+tags_url = None
+pipelines_url = None
+
+marathon_username = None
+marathon_password = None
+marathon_protocol = None
+marathon_host = None
+marathon_port = None
+marathon_origin = None
+marathon_auth_url = None
+marathon_app_url = None
+
+sysstr = None
+driver_path = None
+wd = None
+
+session = None
+processing_json_path = None
+new_tag_version = None
+new_tag_url = None
+
 def init(ini_name):
     global project_path
     global project_name
@@ -48,6 +80,7 @@ def init(ini_name):
     global session
     global processing_json_path
     global new_tag_version
+    global new_tag_url
 
     cfg = ConfigParser()
     cfg.read(ini_name)
@@ -208,13 +241,18 @@ def get_processing_json_data():
     session = login()
     processing_json_path = get_processing_json_path()
 
-    logger('获取最新 build 日志: building...')
-    json_data = session.get(processing_json_path).text
-    json_head_data = json_data[:at_least_len]
-    json_tail_data = json_data[-at_least_len:]
-
-    logger('成功获取 build 日志: ' + json_tail_data[-100:])
-    return json_head_data, json_tail_data
+    json_data = ''
+    json_head_data = ''
+    json_tail_data = ''
+    try:
+        json_data = session.get(processing_json_path).text
+        json_head_data = json_data[:at_least_len]
+        json_tail_data = json_data[-at_least_len:]
+        logger('获取 build 日志: ' + json_tail_data[-100:])
+    except requests.exceptions.TimeoutException:
+        logger('获取 build 日志失败: ' + 'Timeout')
+    finally:
+        return json_head_data, json_tail_data
 
 
 def watch_build_log():
